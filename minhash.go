@@ -23,7 +23,10 @@ func NewMinhash(num_hashes int) *MinHasher {
 	return mh
 }
 
-func (mh* MinHasher) hash(doc map[int]bool) (sigs []int) {
+// The input here is a map of integers to bool.  Each integer corresponds to a feature
+// ID.  Users of this code will typically take shingles and reduce them with the hashing
+// trick.
+func (mh* MinHasher) Hash(doc map[int]bool) (sigs []int) {
 	sigs = make([]int, mh.num_hashes)
 	for i := 0; i < mh.num_hashes; i++ {
 		min := next_prime + 1
