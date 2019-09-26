@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"log"
@@ -37,7 +37,7 @@ func MakeLSHForThreshold(n int, thresh float64) LSH {
 	return MakeLSH(n, num_bands)
 }
 
-func (h LSH) bandprints(hashes []int) (prints []string) {
+func (h LSH) bandprints(hashes []uint32) (prints []string) {
 	prints = make([]string, h.num_bands)
 	for b := 0; b < h.num_bands; b++ {
 		var s strings.Builder
@@ -49,14 +49,14 @@ func (h LSH) bandprints(hashes []int) (prints []string) {
 	return prints
 }
 
-func (h LSH) Insert(key string, hashes []int) {
+func (h LSH) Insert(key string, hashes []uint32) {
 	prints := h.bandprints(hashes)
 	for b, p := range prints {
 		h.maps[b][p] = append(h.maps[b][p], key)
 	}
 }
 
-func (h LSH) Query(hashes []int) []string {
+func (h LSH) Query(hashes []uint32) []string {
 	candidates := make(map[string]bool)
 	prints := h.bandprints(hashes)
 	for b, p := range prints {

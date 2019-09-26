@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"testing"
@@ -21,13 +21,13 @@ func TestSetup(t *testing.T) {
 
 func TestHash(t *testing.T) {
 	num_terms := 1234
-	doc := make(map[int]bool, num_terms)
+	doc := make([]uint32, num_terms)
 	for i := 0; i < num_terms; i++ {
-		doc[rand.Int()] = true
+		doc[i] = rand.Uint32()
 	}
 
 	mh := NewMinhash(256)
-	sigs := mh.hash(doc)
+	sigs := mh.Hash(doc)
 	for term, sig := range sigs {
 		if sig < 0 {
 			t.Errorf("hash has negative signature %q for term %q", sig, term)

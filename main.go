@@ -15,8 +15,32 @@ limitations under the License.
 */
 package main
 
-import "nist.local/isoboroff/dedupe/cmd"
+import (
+	"nist.local/isoboroff/dedupe/cmd"
+	"runtime/pprof"
+	"os"
+	"log"
+)
 
 func main() {
-  cmd.Execute()
+	profiling := false
+	if profiling {
+		memprof, err := os.Create("memprofile")
+		if err != nil {
+			log.Fatal(err)
+		}
+		cpuprof, err := os.Create("cpuprofile")	
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(cpuprof)
+		defer func() {
+			pprof.StopCPUProfile()
+			cpuprof.Close()
+			pprof.WriteHeapProfile(memprof)
+			memprof.Close()
+		}()
+	}
+	
+	cmd.Execute()
 }

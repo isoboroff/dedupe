@@ -1,4 +1,5 @@
-package main
+
+package lib
 
 import (
 	"testing"
