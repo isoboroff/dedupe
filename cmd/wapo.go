@@ -49,78 +49,87 @@ collection.`,
 		// TODO: make sure num-hashes and jaccard-thresh are CLI options!!
 		lsh := lib.MakeLSHForThreshold(256, 0.9)
 		minhash := lib.NewMinhash(256)
-		titles := make(map[string]string)
-		linecount := 0
-		
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-			linecount++
-			if (linecount % 10000) == 0 {
-				log.Println(linecount, "docs")
-			}
-			article := gjson.Parse(line)
-			docid := article.Get("id").String()
-			title := article.Get("title").String()
-			title = strings.Map(func(r rune) rune {
-				if unicode.IsSpace(r) {
-					return ' '
-				} else {
-					return r
-				}
-			}, title)
-			titles[docid] = title
-			text := getWapoText(article)
-			text = preprocess(text)
+		doccount := 0
 
-			sigs := lib.Shingle(text)
+		doc_chan := make(chan Document)
+		go read(reader, doc_chan)
+
+		for doc := range doc_chan {
+			doccount++
+			if (doccount % 10000) == 0 {
+				log.Println(doccount, "docs")
+			}
+
+			sigs := lib.Shingle(doc.text)
 			sigs = minhash.Hash(sigs)
-			lsh.Insert(docid, sigs)
+			lsh.Insert(doc.id, sigs)
 		}
 
 		log.Println("--- Second pass, identifying duplicates")
 		
 		file.Seek(0, 0)
 		reader = bufio.NewReader(file)
-		id2cluster := make(map[string]string, linecount)
-		linecount = 0
+		id2cluster := make(map[string]string, doccount)
+		doccount = 0
 
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				break
+		doc_chan = make(chan Document)
+		go read(reader, doc_chan)
+		
+		for doc := range doc_chan {
+			doccount++
+			if (doccount % 10000) == 0 {
+				log.Println(doccount, "docs")
 			}
-			linecount++
-			if (linecount % 10000) == 0 {
-				log.Println(linecount, "docs")
-			}
-			article := gjson.Parse(line)
-			docid := article.Get("id").String()
-			cluster, ok := id2cluster[docid]
+
+			cluster, ok := id2cluster[doc.id]
 			if ok {
-				fmt.Println(cluster, docid, titles[docid])
+				fmt.Println(cluster, doc.id, doc.name)
 				continue
 			}
 
-			id2cluster[docid] = docid
-			fmt.Println(docid, docid, titles[docid])
+			id2cluster[doc.id] = doc.id
+			fmt.Println(doc.id, doc.id, doc.name)
 
-			text := getWapoText(article)
-			text = preprocess(text)
-
-			sigs := lib.Shingle(text)
+			sigs := lib.Shingle(doc.text)
 			sigs = minhash.Hash(sigs)
 			dupes := lsh.Query(sigs)
 			for _, d := range dupes {
 				if _, ok := id2cluster[d]; !ok {
-					id2cluster[d] = docid
+					id2cluster[d] = doc.id
 				}
 			}
 		}
 
 	},
+}
+
+type Document struct {
+	text string
+	id string
+	name string
+} 
+
+func read(reader *bufio.Reader, c chan Document) {
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		article := gjson.Parse(line)
+		docid := article.Get("id").String()
+		title := article.Get("title").String()
+		title = strings.Map(func(r rune) rune {
+			if unicode.IsSpace(r) {
+				return ' '
+			} else {
+				return r
+			}
+		}, title)
+		text := getWapoText(article)
+		text = preprocess(text)
+		c <- Document{text, docid, title}
+	}
+	close(c)
 }
 
 func getWapoText(obj gjson.Result) string {
