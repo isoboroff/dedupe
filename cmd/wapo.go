@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 
 	"nist.local/isoboroff/dedupe/lib"
@@ -14,14 +15,17 @@ import (
 
 // wapoCmd represents the wapo command
 var wapoCmd = &cobra.Command{
-	Use:   "wapo",
+	Use:   "wapo [JSON lines files...]",
 	Short: "Dedupe the Washington Post collection",
 	Long: `Compute near-duplicate hashes for documents in the Washington Post
 collection.`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: make sure num-hashes and jaccard-thresh are CLI options!!
-		lsh := lib.MakeLSHForThreshold(256, 0.9)
-		minhash := lib.NewMinhash(256)
+		lshThresh := viper.GetFloat64("lsh.threshold")
+		lshBuckets := viper.GetInt("lsh.buckets")
+		minhashSize := viper.GetInt("minhash.size")
+		lsh := lib.MakeLSHForThreshold(lshBuckets, lshThresh)
+		minhash := lib.NewMinhash(minhashSize)
 
 		dd := lib.MakeDeduper(lsh, *minhash, read)
 		dd.Dedupe(args[0])

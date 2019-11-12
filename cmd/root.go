@@ -56,12 +56,25 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dedupe.yaml)")
-	
 
+	// lsh.buckets is the number of hash buckets for LSH, see lib/lsh.go
+	rootCmd.PersistentFlags().Int32P("lsh.buckets", "l", 256, "number of buckets for locality-sensitive hashing (default is 256)")
+	viper.BindPFlag("lsh.buckets", rootCmd.PersistentFlags().Lookup("lsh.buckets"))
+	viper.SetDefault("lsh.buckets", "256")
+	
+	// lsh.threshold is the target Jaccard similarity threshold, see lib/lsh.go
+	rootCmd.PersistentFlags().Float32P("lsh.threshold", "t", 0.9, "target Jaccard similarity threshold (default 0.9)")
+	viper.BindPFlag("lsh.threshold", rootCmd.PersistentFlags().Lookup("lsh.threshold"))
+	viper.SetDefault("lsh.threshold", "0.9")
+
+	// minhash.size is the dimensionality of the minhash fingerprint algorithm.  See lib/minhash.go
+	rootCmd.PersistentFlags().Int32P("minhash.size", "m", 256, "number of minhash function (default 256)")
+	viper.BindPFlag("minhash.size", rootCmd.PersistentFlags().Lookup("minhash.size"))
+	viper.SetDefault("minhash.size", "256")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 
@@ -78,7 +91,8 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".dedupe" (without extension).
+		// Search config in current or home directory with name ".dedupe" (without extension).
+		viper.AddConfigPath(".")
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".dedupe")
 	}
