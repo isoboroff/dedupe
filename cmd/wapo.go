@@ -15,11 +15,11 @@ import (
 
 // wapoCmd represents the wapo command
 var wapoCmd = &cobra.Command{
-	Use:   "wapo [JSON lines files...]",
+	Use:   "wapo [JSON lines file]",
 	Short: "Dedupe the Washington Post collection",
 	Long: `Compute near-duplicate hashes for documents in the Washington Post
 collection.`,
-	Args: cobra.MinimumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		lshThresh := viper.GetFloat64("lsh.threshold")
 		lshBuckets := viper.GetInt("lsh.buckets")
